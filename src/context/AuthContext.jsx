@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-const AuthContext = createContext({});
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -9,75 +9,76 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Verificar sesión activa al cargar
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    };
+    let mounted = true;
 
-    getSession();
+    const loadSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-    // 2. Escuchar cambios en el estado de autenticación (Login/Logout)
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
+      if (!mounted) return;
+
+      if (session?.user) {
         setUser(session.user);
-        await fetchProfile(session.user.id);
+
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        setProfile(profileData || null);
       } else {
         setUser(null);
         setProfile(null);
       }
+
       setLoading(false);
-    });
+    };
+
+    loadSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          setProfile(profileData || null);
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
+
+        setLoading(false);
+      }
+    );
 
     return () => {
-      authListener.subscription.unsubscribe();
+      mounted = false;
+      listener.subscription.unsubscribe();
     };
   }, []);
 
-  // Función para traer los datos extra del perfil (Rol, Nombre)
-  const fetchProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (!error) setProfile(data);
-    } catch (err) {
-      console.error("Error cargando perfil:", err);
-    }
-  };
-
-  const value = {
-    user,
-    profile,
-    loading,
-    signOut: () => supabase.auth.signOut()
-  };
-
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, profile, loading }}>
+      {loading ? (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+          Cargando sistema…
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };
 
-// Hook personalizado para usar el contexto en cualquier página
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe estar dentro de un AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
+  return ctx;
 };
-useEffect(() => {
-  if (user && profile) {
-    // aquí ya es seguro renderizar el sistema
-    console.log("Usuario y perfil listos");
-  }
-}, [user, profile]);
+
