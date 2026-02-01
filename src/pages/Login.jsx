@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // 🔑 CUANDO EL USUARIO EXISTE → ENTRAR
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard'); // ajusta si tu ruta es otra
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -20,10 +32,10 @@ const Login = () => {
 
     if (error) {
       setError(error.message);
-      setLoading(false);
+      setLoading(false); // 🔴 SOLO AQUÍ
     }
-    // ❌ NO navigate aquí
-    // El AuthContext se encargará
+    // ❌ NO setLoading(false) si es éxito
+    // porque esperamos al AuthContext
   };
 
   return (
@@ -37,12 +49,14 @@ const Login = () => {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Correo Corporativo</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Correo Corporativo
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 text-slate-400 w-5 h-5" />
                 <input
                   type="email"
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                  className="w-full pl-10 pr-4 py-3 border rounded-lg"
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
@@ -50,12 +64,14 @@ const Login = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Contraseña</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Contraseña
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 text-slate-400 w-5 h-5" />
                 <input
                   type="password"
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                  className="w-full pl-10 pr-4 py-3 border rounded-lg"
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
