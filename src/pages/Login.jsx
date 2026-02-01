@@ -1,19 +1,29 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError("Credenciales inválidas");
-    else navigate('/');
+    setError(null);
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+    // ❌ NO navigate aquí
+    // El AuthContext se encargará
   };
 
   return (
@@ -30,10 +40,9 @@ const Login = () => {
               <label className="block text-sm font-medium text-slate-700 mb-2">Correo Corporativo</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 text-slate-400 w-5 h-5" />
-                <input 
-                  type="email" 
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none transition"
-                  placeholder="usuario@impriartex.com"
+                <input
+                  type="email"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
@@ -44,10 +53,9 @@ const Login = () => {
               <label className="block text-sm font-medium text-slate-700 mb-2">Contraseña</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 text-slate-400 w-5 h-5" />
-                <input 
-                  type="password" 
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none transition"
-                  placeholder="••••••••"
+                <input
+                  type="password"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
@@ -60,13 +68,14 @@ const Login = () => {
               </div>
             )}
 
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-blue-200">
-              ACCEDER AL SISTEMA
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg disabled:opacity-60"
+            >
+              {loading ? 'Verificando…' : 'ACCEDER AL SISTEMA'}
             </button>
           </form>
-        </div>
-        <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
-          <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold">Acceso Auditado - IP Logged</p>
         </div>
       </div>
     </div>
