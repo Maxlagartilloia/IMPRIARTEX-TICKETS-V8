@@ -75,3 +75,9 @@ export const useAuth = () => {
   }
   return context;
 };
+useEffect(() => {
+  if (user && profile) {
+    // aquí ya es seguro renderizar el sistema
+    console.log("Usuario y perfil listos");
+  }
+}, [user, profile]);
